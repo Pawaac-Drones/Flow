@@ -236,6 +236,7 @@ backend/src/
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | /api/health | Public health check (`{ status, timestamp, database }`); no auth required |
 | POST | /api/auth/register | Register new user |
 | POST | /api/auth/login | Login |
 | POST | /api/auth/refresh | Refresh JWT token |
@@ -285,6 +286,87 @@ Connect to `/ws` namespace:
 | `task-deleted` | Server -> Client | Task deleted from project |
 | `board-update` | Server -> Client | Board state changed |
 | `notification` | Server -> Client | New notification for user |
+
+## Operations, Security & Quality
+
+### Health Check
+
+A public, unauthenticated endpoint is available at `GET /api/health`. It returns
+the service status, a timestamp, and a database connectivity indicator:
+
+```json
+{ "status": "ok", "timestamp": "2025-01-01T00:00:00.000Z", "database": "up" }
+```
+
+The `backend` service in `docker-compose.yml` defines a healthcheck against this
+endpoint, and the `frontend` service waits for the backend to become healthy
+(`depends_on: { backend: { condition: service_healthy } }`) before starting.
+
+### Rate Limiting & Security Headers
+
+- **Security headers** are applied globally via [`helmet`](https://github.com/helmetjs/helmet) (`app.use(helmet())` in `main.ts`).
+- **Rate limiting** uses `@nestjs/throttler`, registered globally with a default
+  of **100 requests/minute per client** and enforced by a global `ThrottlerGuard`.
+- Credential endpoints are throttled more aggressively (`/api/auth/login` and
+  `/api/auth/register`: 10/min; `/api/auth/refresh`: 20/min).
+- The `/api/health` endpoint is excluded from throttling so healthchecks are not
+  rate-limited.
+
+### Configurable Per-Project Statuses
+
+Task statuses are no longer hardcoded. Each project owns a set of
+`StatusWorkflow` rows (managed via `GET/POST/DELETE /api/projects/:id/workflows`)
+and new projects are seeded with five defaults (Backlog, To Do, In Progress, In
+Review, Done).
+
+- On task create/update, the backend validates the supplied `status` against the
+  project's workflow slugs and returns `400 Bad Request` for an unknown status.
+  When no status is supplied on create, the project's default status is used.
+- The Kanban board renders its columns dynamically from the project's workflows
+  (ordered by `order`), falling back to the five defaults when none are returned.
+
+### Role Enforcement (Viewer = Read-Only)
+
+Project membership roles are `admin`, `member`, and `viewer`. Viewers have
+**read-only** access: any mutating, project-scoped action (task create/update/
+delete, comment create/update/delete) is rejected with `403 Forbidden`. Read
+operations remain available to viewers, and existing admin-only checks are
+unchanged.
+
+### Authentication Token Auto-Refresh (Frontend)
+
+The frontend API client transparently recovers from expired access tokens: on a
+`401` it makes a single `POST /auth/refresh` with the stored refresh token,
+stores the new tokens, and retries the original request once. Only if the
+refresh fails are tokens cleared and the user redirected to `/login`. The
+refresh call itself is never retried, preventing infinite loops.
+
+### Running Tests & Linting
+
+```bash
+# Backend unit tests (Jest)
+npm run test --workspace=backend
+
+# Lint (ESLint + Prettier rules)
+npm run lint --workspace=backend
+npm run lint --workspace=frontend
+
+# Builds
+npm run build --workspace=shared
+npm run build --workspace=backend
+npm run build --workspace=frontend
+```
+
+Backend unit tests cover the auth service (password hashing, duplicate-email
+rejection, credential validation), the tasks service (task-key generation,
+status validation against workflows, viewer write rejection), and the OpenWA
+message handler (tool-call mapping and the unregistered-number path).
+
+### Continuous Integration
+
+A GitHub Actions workflow at `.github/workflows/ci.yml` runs on every push and
+pull request using **Node 22**. It builds the shared package, then lints,
+builds, and tests the backend, and lints and builds the frontend.
 
 ## License
 
