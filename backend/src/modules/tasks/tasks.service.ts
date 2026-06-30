@@ -34,7 +34,7 @@ export class TasksService {
   ) {}
 
   async create(projectId: string, dto: CreateTaskDto, userId: string) {
-    await this.assertProjectMember(projectId, userId);
+    await this.assertProjectWriteAccess(projectId, userId);
 
     // Resolve and validate the status against the project's configurable
     // status workflows. If no status is supplied, fall back to the project's
@@ -208,6 +208,7 @@ export class TasksService {
   }
 
   async update(projectId: string, taskId: string, dto: UpdateTaskDto, userId: string) {
+    await this.assertProjectWriteAccess(projectId, userId);
     const task = await this.findById(projectId, taskId, userId);
     const oldStatus = task.status;
     const oldAssigneeId = task.assigneeId;
@@ -273,6 +274,7 @@ export class TasksService {
   }
 
   async remove(projectId: string, taskId: string, userId: string) {
+    await this.assertProjectWriteAccess(projectId, userId);
     await this.findById(projectId, taskId, userId);
 
     await this.activityService.logActivity({
@@ -314,6 +316,26 @@ export class TasksService {
 
     if (!member) {
       throw new ForbiddenException('You are not a member of this project');
+    }
+  }
+
+  /**
+   * Ensure the user can perform write (mutating) operations on the project.
+   * Members and admins may write; viewers have read-only access.
+   */
+  private async assertProjectWriteAccess(projectId: string, userId: string) {
+    const member = await this.memberRepository.findOne({
+      where: { projectId, userId },
+    });
+
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this project');
+    }
+
+    if (member.role === 'viewer') {
+      throw new ForbiddenException(
+        'Viewers have read-only access to this project',
+      );
     }
   }
 

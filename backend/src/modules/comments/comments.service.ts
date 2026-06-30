@@ -28,7 +28,7 @@ export class CommentsService {
   ) {}
 
   async create(projectId: string, taskId: string, dto: CreateCommentDto, userId: string) {
-    await this.assertProjectMember(projectId, userId);
+    await this.assertProjectWriteAccess(projectId, userId);
 
     const task = await this.taskRepository.findOne({
       where: { id: taskId, projectId },
@@ -110,6 +110,8 @@ export class CommentsService {
       throw new NotFoundException('Comment not found');
     }
 
+    await this.assertCommentWriteAccess(comment.taskId, userId);
+
     if (comment.authorId !== userId) {
       throw new ForbiddenException('You can only edit your own comments');
     }
@@ -127,6 +129,8 @@ export class CommentsService {
       throw new NotFoundException('Comment not found');
     }
 
+    await this.assertCommentWriteAccess(comment.taskId, userId);
+
     if (comment.authorId !== userId) {
       throw new ForbiddenException('You can only delete your own comments');
     }
@@ -135,7 +139,7 @@ export class CommentsService {
     return { message: 'Comment deleted successfully' };
   }
 
-  private async assertProjectMember(projectId: string, userId: string) {
+  private async assertProjectWriteAccess(projectId: string, userId: string) {
     const member = await this.memberRepository.findOne({
       where: { projectId, userId },
     });
@@ -143,5 +147,24 @@ export class CommentsService {
     if (!member) {
       throw new ForbiddenException('You are not a member of this project');
     }
+
+    if (member.role === 'viewer') {
+      throw new ForbiddenException(
+        'Viewers have read-only access to this project',
+      );
+    }
+  }
+
+  /**
+   * Resolve a comment's project (via its task) and enforce write access.
+   */
+  private async assertCommentWriteAccess(taskId: string, userId: string) {
+    const task = await this.taskRepository.findOne({ where: { id: taskId } });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    await this.assertProjectWriteAccess(task.projectId, userId);
   }
 }
