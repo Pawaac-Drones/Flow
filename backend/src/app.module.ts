@@ -15,6 +15,7 @@ import { CommentsModule } from './modules/comments/comments.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { HealthModule } from './modules/health/health.module';
 import { OpenWaModule } from './modules/openwa/openwa.module';
 
 const isOpenWaEnabled = process.env.OPENWA_ENABLED === 'true';
@@ -54,6 +55,7 @@ const isOpenWaEnabled = process.env.OPENWA_ENABLED === 'true';
     ActivityModule,
     NotificationsModule,
     RealtimeModule,
+    HealthModule,
     ...(isOpenWaEnabled ? [OpenWaModule.register()] : []),
   ],
   providers: [
