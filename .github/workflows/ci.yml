@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  shared:
+    name: Shared (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+  backend:
+    name: Backend (lint + build + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Build shared
+        run: npm run build --workspace=shared
+      - name: Lint backend
+        run: npm run lint --workspace=backend
+      - name: Build backend
+        run: npm run build --workspace=backend
+      - name: Test backend
+        run: npm run test --workspace=backend
+
+  frontend:
+    name: Frontend (lint + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Build shared
+        run: npm run build --workspace=shared
+      - name: Lint frontend
+        run: npm run lint --workspace=frontend
+      - name: Build frontend
+        run: npm run build --workspace=frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
