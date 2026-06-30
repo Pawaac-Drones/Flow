@@ -1,17 +1,83 @@
-import { getAccessToken, clearTokens } from './auth';
+import {
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+  clearTokens,
+} from './auth';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') + '/api';
 
 interface RequestOptions {
   headers?: Record<string, string>;
   body?: unknown;
+  // Internal flag used to prevent infinite refresh/retry loops.
+  _retried?: boolean;
+}
+
+interface RefreshResponse {
+  accessToken: string;
+  refreshToken: string;
 }
 
 class ApiClient {
   private baseUrl: string;
+  // Shared in-flight refresh promise so concurrent 401s only trigger a single
+  // refresh request.
+  private refreshPromise: Promise<boolean> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
+  }
+
+  private redirectToLogin(): void {
+    clearTokens();
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+  }
+
+  /**
+   * Attempt to refresh the access token using the stored refresh token.
+   * Returns true on success. Concurrent callers share a single request.
+   */
+  private async tryRefresh(): Promise<boolean> {
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      return false;
+    }
+
+    this.refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+
+        if (!response.ok) {
+          return false;
+        }
+
+        const data = (await response.json()) as RefreshResponse;
+        if (!data?.accessToken || !data?.refreshToken) {
+          return false;
+        }
+
+        setTokens(data.accessToken, data.refreshToken);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        // Allow subsequent refreshes after this one settles.
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
   }
 
   private async request<T>(
@@ -36,10 +102,20 @@ class ApiClient {
     });
 
     if (response.status === 401) {
-      clearTokens();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+      // Never try to refresh the refresh call itself, and only retry once.
+      const isRefreshCall = path.startsWith('/auth/refresh');
+      if (isRefreshCall || options._retried) {
+        this.redirectToLogin();
+        throw new Error('Unauthorized');
       }
+
+      const refreshed = await this.tryRefresh();
+      if (refreshed) {
+        // Retry the original request exactly once with the new token.
+        return this.request<T>(method, path, { ...options, _retried: true });
+      }
+
+      this.redirectToLogin();
       throw new Error('Unauthorized');
     }
 
