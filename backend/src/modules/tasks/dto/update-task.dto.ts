@@ -21,8 +21,10 @@ export class UpdateTaskDto {
   @IsString()
   description?: string;
 
+  // Status is validated against the project's configurable StatusWorkflow
+  // slugs in TasksService rather than a hardcoded enum here.
   @IsOptional()
-  @IsIn(['backlog', 'todo', 'in_progress', 'in_review', 'done'])
+  @IsString()
   status?: string;
 
   @IsOptional()

@@ -2,12 +2,14 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Task } from '../../entities/task.entity';
 import { Project } from '../../entities/project.entity';
 import { ProjectMember } from '../../entities/project-member.entity';
+import { StatusWorkflow } from '../../entities/status-workflow.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskFilterDto } from './dto/task-filter.dto';
@@ -24,6 +26,8 @@ export class TasksService {
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectMember)
     private readonly memberRepository: Repository<ProjectMember>,
+    @InjectRepository(StatusWorkflow)
+    private readonly workflowRepository: Repository<StatusWorkflow>,
     private readonly activityService: ActivityService,
     private readonly notificationsService: NotificationsService,
     private readonly realtimeGateway: RealtimeGateway,
@@ -31,6 +35,13 @@ export class TasksService {
 
   async create(projectId: string, dto: CreateTaskDto, userId: string) {
     await this.assertProjectMember(projectId, userId);
+
+    // Resolve and validate the status against the project's configurable
+    // status workflows. If no status is supplied, fall back to the project's
+    // default status.
+    const status = dto.status
+      ? await this.assertValidStatus(projectId, dto.status)
+      : await this.getDefaultStatus(projectId);
 
     // Generate task key using atomic increment with RETURNING to prevent race conditions
     const project = await this.projectRepository.findOne({ where: { id: projectId } });
@@ -56,7 +67,7 @@ export class TasksService {
       taskKey,
       title: dto.title,
       description: dto.description || null,
-      status: dto.status || 'backlog',
+      status,
       priority: dto.priority || 'medium',
       assigneeId: dto.assigneeId || null,
       reporterId: userId,
@@ -203,7 +214,10 @@ export class TasksService {
 
     if (dto.title !== undefined) task.title = dto.title;
     if (dto.description !== undefined) task.description = dto.description;
-    if (dto.status !== undefined) task.status = dto.status;
+    if (dto.status !== undefined) {
+      await this.assertValidStatus(projectId, dto.status);
+      task.status = dto.status;
+    }
     if (dto.priority !== undefined) task.priority = dto.priority;
     if (dto.assigneeId !== undefined) task.assigneeId = dto.assigneeId;
     if (dto.epicId !== undefined) task.epicId = dto.epicId;
@@ -301,5 +315,46 @@ export class TasksService {
     if (!member) {
       throw new ForbiddenException('You are not a member of this project');
     }
+  }
+
+  /**
+   * Ensure the given status slug exists in the project's configurable status
+   * workflows. Returns the slug when valid, throws BadRequestException when not.
+   */
+  private async assertValidStatus(
+    projectId: string,
+    status: string,
+  ): Promise<string> {
+    const workflow = await this.workflowRepository.findOne({
+      where: { projectId, slug: status },
+    });
+
+    if (!workflow) {
+      throw new BadRequestException(
+        `Invalid status "${status}" for this project`,
+      );
+    }
+
+    return status;
+  }
+
+  /**
+   * Resolve the default status slug for a project: the workflow flagged as
+   * default, otherwise the first by order. Falls back to 'backlog' when a
+   * project has no configured workflows.
+   */
+  private async getDefaultStatus(projectId: string): Promise<string> {
+    const workflows = await this.workflowRepository.find({
+      where: { projectId },
+      order: { order: 'ASC' },
+    });
+
+    if (workflows.length === 0) {
+      return 'backlog';
+    }
+
+    const defaultWorkflow =
+      workflows.find((workflow) => workflow.isDefault) || workflows[0];
+    return defaultWorkflow.slug;
   }
 }
