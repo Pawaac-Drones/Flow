@@ -1,0 +1,21 @@
+{
+  "name": "pawaacflow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted Jira alternative with WhatsApp AI integration",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "shared"
+  ],
+  "scripts": {
+    "dev:backend": "npm run start:dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

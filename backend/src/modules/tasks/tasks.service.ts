@@ -1,0 +1,305 @@
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Task } from '../../entities/task.entity';
+import { Project } from '../../entities/project.entity';
+import { ProjectMember } from '../../entities/project-member.entity';
+import { CreateTaskDto } from './dto/create-task.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
+import { TaskFilterDto } from './dto/task-filter.dto';
+import { ActivityService } from '../activity/activity.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
+
+@Injectable()
+export class TasksService {
+  constructor(
+    @InjectRepository(Task)
+    private readonly taskRepository: Repository<Task>,
+    @InjectRepository(Project)
+    private readonly projectRepository: Repository<Project>,
+    @InjectRepository(ProjectMember)
+    private readonly memberRepository: Repository<ProjectMember>,
+    private readonly activityService: ActivityService,
+    private readonly notificationsService: NotificationsService,
+    private readonly realtimeGateway: RealtimeGateway,
+  ) {}
+
+  async create(projectId: string, dto: CreateTaskDto, userId: string) {
+    await this.assertProjectMember(projectId, userId);
+
+    // Generate task key using atomic increment with RETURNING to prevent race conditions
+    const project = await this.projectRepository.findOne({ where: { id: projectId } });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const result = await this.projectRepository
+      .createQueryBuilder()
+      .update(Project)
+      .set({ taskCounter: () => '"task_counter" + 1' })
+      .where('id = :id', { id: projectId })
+      .returning('"task_counter"')
+      .execute();
+
+    const newCounter = result.raw[0].task_counter;
+    const taskKey = `${project.key}-${newCounter}`;
+
+    const task = this.taskRepository.create({
+      projectId,
+      epicId: dto.epicId || null,
+      parentTaskId: dto.parentTaskId || null,
+      taskKey,
+      title: dto.title,
+      description: dto.description || null,
+      status: dto.status || 'backlog',
+      priority: dto.priority || 'medium',
+      assigneeId: dto.assigneeId || null,
+      reporterId: userId,
+      dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+      labels: dto.labels || [],
+      order: 0,
+    });
+
+    const savedTask = await this.taskRepository.save(task);
+
+    // Log activity
+    await this.activityService.logActivity({
+      projectId,
+      taskId: savedTask.id,
+      userId,
+      action: 'created',
+      newValue: savedTask.title,
+    });
+
+    // Notify assignee
+    if (savedTask.assigneeId && savedTask.assigneeId !== userId) {
+      await this.notificationsService.createNotification({
+        userId: savedTask.assigneeId,
+        type: 'task_assigned',
+        title: 'Task Assigned',
+        message: `You have been assigned to ${savedTask.taskKey}: ${savedTask.title}`,
+        taskId: savedTask.id,
+        projectId,
+      });
+    }
+
+    // Emit real-time event
+    this.realtimeGateway.emitToProject(projectId, 'task-created', savedTask);
+
+    return savedTask;
+  }
+
+  async findAll(projectId: string, userId: string, filterDto: TaskFilterDto) {
+    await this.assertProjectMember(projectId, userId);
+
+    const { page = 1, limit = 50, status, priority, assigneeId, epicId, search, labels } = filterDto;
+    const skip = (page - 1) * limit;
+
+    let query: SelectQueryBuilder<Task> = this.taskRepository
+      .createQueryBuilder('task')
+      .where('task.project_id = :projectId', { projectId })
+      .andWhere('task.parent_task_id IS NULL');
+
+    if (status) {
+      query = query.andWhere('task.status = :status', { status });
+    }
+
+    if (priority) {
+      query = query.andWhere('task.priority = :priority', { priority });
+    }
+
+    if (assigneeId) {
+      query = query.andWhere('task.assignee_id = :assigneeId', { assigneeId });
+    }
+
+    if (epicId) {
+      query = query.andWhere('task.epic_id = :epicId', { epicId });
+    }
+
+    if (search) {
+      query = query.andWhere(
+        '(task.title ILIKE :search OR task.task_key ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    if (labels && labels.length > 0) {
+      query = query.andWhere('task.labels && :labels', { labels });
+    }
+
+    query = query
+      .leftJoinAndSelect('task.assignee', 'assignee')
+      .leftJoinAndSelect('task.reporter', 'reporter')
+      .orderBy('task.order', 'ASC')
+      .addOrderBy('task.created_at', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    const [tasks, total] = await query.getManyAndCount();
+
+    return {
+      data: tasks,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async findById(projectId: string, taskId: string, userId: string) {
+    await this.assertProjectMember(projectId, userId);
+
+    const task = await this.taskRepository.findOne({
+      where: { id: taskId, projectId },
+      relations: ['assignee', 'reporter', 'epic', 'subtasks', 'comments'],
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    return task;
+  }
+
+  async findByKey(taskKey: string) {
+    const task = await this.taskRepository.findOne({
+      where: { taskKey },
+      relations: ['assignee', 'reporter', 'project'],
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task ${taskKey} not found`);
+    }
+
+    return task;
+  }
+
+  async findByIdDirect(taskId: string, userId: string) {
+    const task = await this.taskRepository.findOne({
+      where: { id: taskId },
+      relations: ['assignee', 'reporter', 'epic', 'subtasks', 'comments', 'project'],
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    await this.assertProjectMember(task.projectId, userId);
+
+    return task;
+  }
+
+  async update(projectId: string, taskId: string, dto: UpdateTaskDto, userId: string) {
+    const task = await this.findById(projectId, taskId, userId);
+    const oldStatus = task.status;
+    const oldAssigneeId = task.assigneeId;
+
+    if (dto.title !== undefined) task.title = dto.title;
+    if (dto.description !== undefined) task.description = dto.description;
+    if (dto.status !== undefined) task.status = dto.status;
+    if (dto.priority !== undefined) task.priority = dto.priority;
+    if (dto.assigneeId !== undefined) task.assigneeId = dto.assigneeId;
+    if (dto.epicId !== undefined) task.epicId = dto.epicId;
+    if (dto.parentTaskId !== undefined) task.parentTaskId = dto.parentTaskId;
+    if (dto.dueDate !== undefined) task.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+    if (dto.labels !== undefined) task.labels = dto.labels;
+    if (dto.order !== undefined) task.order = dto.order;
+
+    const updatedTask = await this.taskRepository.save(task);
+
+    // Log status change
+    if (dto.status !== undefined && dto.status !== oldStatus) {
+      await this.activityService.logActivity({
+        projectId,
+        taskId,
+        userId,
+        action: 'status_changed',
+        field: 'status',
+        oldValue: oldStatus,
+        newValue: dto.status,
+      });
+    }
+
+    // Log assignment change
+    if (dto.assigneeId !== undefined && dto.assigneeId !== oldAssigneeId) {
+      await this.activityService.logActivity({
+        projectId,
+        taskId,
+        userId,
+        action: 'assigned',
+        field: 'assignee',
+        oldValue: oldAssigneeId || undefined,
+        newValue: dto.assigneeId || undefined,
+      });
+
+      // Notify new assignee
+      if (dto.assigneeId && dto.assigneeId !== userId) {
+        await this.notificationsService.createNotification({
+          userId: dto.assigneeId,
+          type: 'task_assigned',
+          title: 'Task Assigned',
+          message: `You have been assigned to ${task.taskKey}: ${task.title}`,
+          taskId,
+          projectId,
+        });
+      }
+    }
+
+    // Emit real-time event
+    this.realtimeGateway.emitToProject(projectId, 'task-updated', updatedTask);
+
+    return updatedTask;
+  }
+
+  async remove(projectId: string, taskId: string, userId: string) {
+    await this.findById(projectId, taskId, userId);
+
+    await this.activityService.logActivity({
+      projectId,
+      taskId,
+      userId,
+      action: 'deleted',
+    });
+
+    await this.taskRepository.delete(taskId);
+
+    this.realtimeGateway.emitToProject(projectId, 'task-deleted', { taskId });
+
+    return { message: 'Task deleted successfully' };
+  }
+
+  async getSubtasks(projectId: string, taskId: string, userId: string) {
+    await this.assertProjectMember(projectId, userId);
+
+    return this.taskRepository.find({
+      where: { parentTaskId: taskId, projectId },
+      relations: ['assignee'],
+      order: { order: 'ASC' },
+    });
+  }
+
+  async getTasksByAssignee(userId: string) {
+    return this.taskRepository.find({
+      where: { assigneeId: userId },
+      relations: ['project'],
+      order: { updatedAt: 'DESC' },
+    });
+  }
+
+  private async assertProjectMember(projectId: string, userId: string) {
+    const member = await this.memberRepository.findOne({
+      where: { projectId, userId },
+    });
+
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this project');
+    }
+  }
+}
