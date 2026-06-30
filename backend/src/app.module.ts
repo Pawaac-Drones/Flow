@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { databaseConfig } from './config/database.config';
 import { appConfig } from './config/app.config';
 import { jwtConfig } from './config/jwt.config';
@@ -23,6 +25,13 @@ const isOpenWaEnabled = process.env.OPENWA_ENABLED === 'true';
       isGlobal: true,
       load: [appConfig, databaseConfig, jwtConfig],
     }),
+    // Global rate limiting: 100 requests per minute per client by default.
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     TypeOrmModule.forRootAsync({
       useFactory: () => ({
         type: 'postgres' as const,
@@ -46,6 +55,12 @@ const isOpenWaEnabled = process.env.OPENWA_ENABLED === 'true';
     NotificationsModule,
     RealtimeModule,
     ...(isOpenWaEnabled ? [OpenWaModule.register()] : []),
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
