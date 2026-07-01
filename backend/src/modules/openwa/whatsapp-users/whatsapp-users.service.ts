@@ -37,7 +37,10 @@ export class WhatsappUsersService {
    * Link a WhatsApp number to the given user. The number starts unverified
    * and is assigned a verification code that the user must send to the bot.
    */
-  async linkNumber(userId: string, rawPhoneNumber: string): Promise<WhatsappUser> {
+  async linkNumber(
+    userId: string,
+    rawPhoneNumber: string,
+  ): Promise<WhatsappUser> {
     const phoneNumber = normalizePhoneNumber(rawPhoneNumber);
 
     if (phoneNumber.length < 8) {
@@ -72,7 +75,9 @@ export class WhatsappUsersService {
     });
 
     const saved = await this.whatsappUserRepository.save(whatsappUser);
-    this.logger.log(`Linked WhatsApp number ${phoneNumber} to user ${userId} (pending verification)`);
+    this.logger.log(
+      `Linked WhatsApp number ${phoneNumber} to user ${userId} (pending verification)`,
+    );
     return saved;
   }
 
@@ -93,7 +98,9 @@ export class WhatsappUsersService {
     }
 
     await this.whatsappUserRepository.remove(whatsappUser);
-    this.logger.log(`Unlinked WhatsApp number ${whatsappUser.phoneNumber} from user ${userId}`);
+    this.logger.log(
+      `Unlinked WhatsApp number ${whatsappUser.phoneNumber} from user ${userId}`,
+    );
     return { message: 'WhatsApp number unlinked successfully' };
   }
 }

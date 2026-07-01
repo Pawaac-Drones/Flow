@@ -49,8 +49,9 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
 
     // Default token + config behaviour
-    jwtService.sign.mockImplementation((_payload: unknown, options?: unknown) =>
-      options ? 'refresh-token' : 'access-token',
+    jwtService.sign.mockImplementation(
+      (_payload: unknown, options?: unknown) =>
+        options ? 'refresh-token' : 'access-token',
     );
     configService.get.mockReturnValue('some-secret');
     (mockedBcrypt.hash as jest.Mock).mockResolvedValue('hashed-value');
@@ -89,11 +90,16 @@ describe('AuthService', () => {
       expect(result.refreshToken).toBe('refresh-token');
       expect(result.user.email).toBe(registerDto.email);
       // Sanitized user must not leak the password hash.
-      expect((result.user as Record<string, unknown>).passwordHash).toBeUndefined();
+      expect(
+        (result.user as Record<string, unknown>).passwordHash,
+      ).toBeUndefined();
     });
 
     it('rejects a duplicate email', async () => {
-      userRepository.findOne.mockResolvedValue({ id: 'existing', email: registerDto.email });
+      userRepository.findOne.mockResolvedValue({
+        id: 'existing',
+        email: registerDto.email,
+      });
 
       await expect(service.register(registerDto)).rejects.toBeInstanceOf(
         ConflictException,
@@ -147,7 +153,10 @@ describe('AuthService', () => {
     });
 
     it('rejects when the account is deactivated', async () => {
-      userRepository.findOne.mockResolvedValue({ ...activeUser, isActive: false });
+      userRepository.findOne.mockResolvedValue({
+        ...activeUser,
+        isActive: false,
+      });
 
       await expect(service.login(loginDto)).rejects.toBeInstanceOf(
         UnauthorizedException,

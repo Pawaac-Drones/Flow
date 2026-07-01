@@ -6,7 +6,7 @@ import { WhatsappUser } from '../../../entities/whatsapp-user.entity';
 import { Task } from '../../../entities/task.entity';
 import { User } from '../../../entities/user.entity';
 import { OpenWaService } from '../openwa.service';
-import { TaskStatus, Priority } from '../../../../../shared/src/types/enums';
+import { TaskStatus, Priority } from '../../../common/enums';
 
 @Injectable()
 export class DigestService {
@@ -31,7 +31,9 @@ export class DigestService {
       relations: ['user'],
     });
 
-    this.logger.log(`Found ${optedInUsers.length} users opted in for daily digest`);
+    this.logger.log(
+      `Found ${optedInUsers.length} users opted in for daily digest`,
+    );
 
     for (const waUser of optedInUsers) {
       try {
@@ -41,7 +43,10 @@ export class DigestService {
           this.logger.debug(`Digest sent to ${waUser.phoneNumber}`);
         }
       } catch (error) {
-        this.logger.error(`Failed to send digest to ${waUser.phoneNumber}:`, error);
+        this.logger.error(
+          `Failed to send digest to ${waUser.phoneNumber}:`,
+          error,
+        );
       }
     }
 
@@ -55,7 +60,7 @@ export class DigestService {
 
     if (!waUser) {
       throw new Error(
-        'No WhatsApp number linked to your account. Please link your number first.'
+        'No WhatsApp number linked to your account. Please link your number first.',
       );
     }
 
@@ -94,13 +99,13 @@ export class DigestService {
     }
 
     const overdueTasks = pendingTasks.filter(
-      (t) => t.dueDate && new Date(t.dueDate) < new Date()
+      (t) => t.dueDate && new Date(t.dueDate) < new Date(),
     );
     const highPriorityTasks = pendingTasks.filter(
-      (t) => t.priority === Priority.HIGH || t.priority === Priority.HIGHEST
+      (t) => t.priority === Priority.HIGH || t.priority === Priority.HIGHEST,
     );
     const inProgressTasks = pendingTasks.filter(
-      (t) => t.status === TaskStatus.IN_PROGRESS
+      (t) => t.status === TaskStatus.IN_PROGRESS,
     );
 
     let message = `Good morning, ${user.displayName}! Here is your daily digest:\n\n`;

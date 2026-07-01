@@ -8,10 +8,7 @@ import { User } from '../../entities/user.entity';
 import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Notification, User]),
-    RealtimeModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Notification, User]), RealtimeModule],
   controllers: [NotificationsController],
   providers: [NotificationsService, EmailService],
   exports: [NotificationsService],

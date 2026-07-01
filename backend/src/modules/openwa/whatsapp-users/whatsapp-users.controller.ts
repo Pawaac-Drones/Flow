@@ -52,7 +52,10 @@ export class WhatsappUsersController {
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: LinkWhatsappDto,
   ): Promise<WhatsappUserView> {
-    const linked = await this.whatsappUsersService.linkNumber(user.id, dto.phoneNumber);
+    const linked = await this.whatsappUsersService.linkNumber(
+      user.id,
+      dto.phoneNumber,
+    );
     return this.toView(linked);
   }
 

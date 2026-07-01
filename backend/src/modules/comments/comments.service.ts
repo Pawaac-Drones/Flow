@@ -27,7 +27,12 @@ export class CommentsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async create(projectId: string, taskId: string, dto: CreateCommentDto, userId: string) {
+  async create(
+    projectId: string,
+    taskId: string,
+    dto: CreateCommentDto,
+    userId: string,
+  ) {
     await this.assertProjectWriteAccess(projectId, userId);
 
     const task = await this.taskRepository.findOne({

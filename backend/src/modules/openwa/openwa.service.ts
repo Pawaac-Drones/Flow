@@ -8,7 +8,10 @@ export class OpenWaService {
   private readonly apiKey: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.apiUrl = this.configService.get<string>('OPENWA_API_URL', 'http://localhost:8080');
+    this.apiUrl = this.configService.get<string>(
+      'OPENWA_API_URL',
+      'http://localhost:8080',
+    );
     this.apiKey = this.configService.get<string>('OPENWA_API_KEY', '');
   }
 
@@ -26,7 +29,9 @@ export class OpenWaService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.logger.error(`Failed to send message to ${phone}: ${response.status} ${errorText}`);
+        this.logger.error(
+          `Failed to send message to ${phone}: ${response.status} ${errorText}`,
+        );
         return false;
       }
 
@@ -39,7 +44,7 @@ export class OpenWaService {
   }
 
   async sendBulkMessages(
-    messages: Array<{ phone: string; message: string }>
+    messages: Array<{ phone: string; message: string }>,
   ): Promise<void> {
     for (const msg of messages) {
       await this.sendMessage(msg.phone, msg.message);

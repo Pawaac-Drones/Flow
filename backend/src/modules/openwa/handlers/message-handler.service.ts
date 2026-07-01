@@ -8,7 +8,7 @@ import { ProjectMember } from '../../../entities/project-member.entity';
 import { OpenWaService } from '../openwa.service';
 import { LlmService } from '../llm/llm.service';
 import { TasksService } from '../../tasks/tasks.service';
-import { TaskStatus, Priority } from '../../../../../shared/src/types/enums';
+import { TaskStatus } from '../../../common/enums';
 
 @Injectable()
 export class MessageHandlerService {
@@ -28,7 +28,10 @@ export class MessageHandlerService {
     private readonly tasksService: TasksService,
   ) {}
 
-  async handleIncomingMessage(phoneNumber: string, messageBody: string): Promise<void> {
+  async handleIncomingMessage(
+    phoneNumber: string,
+    messageBody: string,
+  ): Promise<void> {
     this.logger.log(`Processing message from ${phoneNumber}: "${messageBody}"`);
 
     // Lookup user by phone number
@@ -41,7 +44,7 @@ export class MessageHandlerService {
       this.logger.warn(`Unregistered phone number: ${phoneNumber}`);
       await this.openWaService.sendMessage(
         phoneNumber,
-        'Sorry, your phone number is not registered with PawaacFlow. Please link your WhatsApp number in your account settings to use this feature.'
+        'Sorry, your phone number is not registered with PawaacFlow. Please link your WhatsApp number in your account settings to use this feature.',
       );
       return;
     }
@@ -61,14 +64,14 @@ export class MessageHandlerService {
         this.logger.log(`Verified WhatsApp number ${phoneNumber}`);
         await this.openWaService.sendMessage(
           phoneNumber,
-          'Your WhatsApp number has been verified! You can now manage your tasks from here. Try "show my pending tasks".'
+          'Your WhatsApp number has been verified! You can now manage your tasks from here. Try "show my pending tasks".',
         );
         return;
       }
 
       await this.openWaService.sendMessage(
         phoneNumber,
-        'Your WhatsApp number is registered but not yet verified. Please send the verification code shown in your PawaacFlow WhatsApp settings to confirm this number.'
+        'Your WhatsApp number is registered but not yet verified. Please send the verification code shown in your PawaacFlow WhatsApp settings to confirm this number.',
       );
       return;
     }
@@ -77,7 +80,10 @@ export class MessageHandlerService {
     const userName = user.displayName || user.email;
 
     // Process message through LLM
-    const llmResult = await this.llmService.processMessage(messageBody, userName);
+    const llmResult = await this.llmService.processMessage(
+      messageBody,
+      userName,
+    );
 
     if (llmResult.toolCalls.length > 0) {
       // Execute tool calls
@@ -103,7 +109,8 @@ export class MessageHandlerService {
         assistantMessage,
       );
 
-      const responseText = finalResult.textResponse || this.formatToolResults(toolResults);
+      const responseText =
+        finalResult.textResponse || this.formatToolResults(toolResults);
       await this.openWaService.sendMessage(phoneNumber, responseText);
     } else if (llmResult.textResponse) {
       // Direct text response (no tool calls needed)
@@ -111,7 +118,7 @@ export class MessageHandlerService {
     } else {
       await this.openWaService.sendMessage(
         phoneNumber,
-        'I understood your message but could not determine what action to take. Try something like "Create a task called Fix login bug" or "Show my pending tasks".'
+        'I understood your message but could not determine what action to take. Try something like "Create a task called Fix login bug" or "Show my pending tasks".',
       );
     }
   }
@@ -158,7 +165,9 @@ export class MessageHandlerService {
     // Find the project
     let project: Project | null = null;
     if (projectKey) {
-      project = await this.projectRepository.findOne({ where: { key: projectKey } });
+      project = await this.projectRepository.findOne({
+        where: { key: projectKey },
+      });
     } else {
       // Get user's first project as default (only projects where user is a member)
       const membership = await this.memberRepository.findOne({
@@ -170,7 +179,9 @@ export class MessageHandlerService {
     }
 
     if (!project) {
-      return JSON.stringify({ error: 'No project found. Please specify a project key.' });
+      return JSON.stringify({
+        error: 'No project found. Please specify a project key.',
+      });
     }
 
     // Check project membership before proceeding
@@ -185,7 +196,9 @@ export class MessageHandlerService {
     // Resolve assignee
     let assigneeId: string | undefined;
     if (assigneeEmail) {
-      const assignee = await this.userRepository.findOne({ where: { email: assigneeEmail } });
+      const assignee = await this.userRepository.findOne({
+        where: { email: assigneeEmail },
+      });
       if (assignee) {
         assigneeId = assignee.id;
       }
@@ -248,9 +261,13 @@ export class MessageHandlerService {
     const taskKey = args.taskKey as string;
     const assigneeEmail = args.assigneeEmail as string;
 
-    const assignee = await this.userRepository.findOne({ where: { email: assigneeEmail } });
+    const assignee = await this.userRepository.findOne({
+      where: { email: assigneeEmail },
+    });
     if (!assignee) {
-      return JSON.stringify({ error: `User with email ${assigneeEmail} not found.` });
+      return JSON.stringify({
+        error: `User with email ${assigneeEmail} not found.`,
+      });
     }
 
     // Find the task by key to get projectId
@@ -281,13 +298,17 @@ export class MessageHandlerService {
     const priority = args.priority as string | undefined;
     const assigneeEmail = args.assigneeEmail as string | undefined;
     const search = args.search as string | undefined;
-    const limit = parseInt(args.limit as string || '10', 10);
+    const limit = parseInt((args.limit as string) || '10', 10);
 
     if (!projectKey) {
-      return JSON.stringify({ error: 'Please specify a project key to query tasks.' });
+      return JSON.stringify({
+        error: 'Please specify a project key to query tasks.',
+      });
     }
 
-    const project = await this.projectRepository.findOne({ where: { key: projectKey } });
+    const project = await this.projectRepository.findOne({
+      where: { key: projectKey },
+    });
     if (!project) {
       return JSON.stringify({ error: `Project ${projectKey} not found.` });
     }
@@ -295,7 +316,9 @@ export class MessageHandlerService {
     // Resolve assignee ID if email provided
     let assigneeId: string | undefined;
     if (assigneeEmail) {
-      const assignee = await this.userRepository.findOne({ where: { email: assigneeEmail } });
+      const assignee = await this.userRepository.findOne({
+        where: { email: assigneeEmail },
+      });
       if (assignee) {
         assigneeId = assignee.id;
       }
@@ -350,7 +373,9 @@ export class MessageHandlerService {
     });
   }
 
-  private formatToolResults(results: Array<{ id: string; result: string }>): string {
+  private formatToolResults(
+    results: Array<{ id: string; result: string }>,
+  ): string {
     const outputs: string[] = [];
     for (const result of results) {
       try {
@@ -358,7 +383,9 @@ export class MessageHandlerService {
         if (parsed.error) {
           outputs.push(`Error: ${parsed.error}`);
         } else if (parsed.success) {
-          outputs.push(`Done! Task ${parsed.taskKey || ''}: ${parsed.title || 'completed'}`);
+          outputs.push(
+            `Done! Task ${parsed.taskKey || ''}: ${parsed.title || 'completed'}`,
+          );
         } else {
           outputs.push(JSON.stringify(parsed));
         }

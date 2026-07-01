@@ -1,4 +1,10 @@
-import { IsString, IsNumber, IsOptional, IsBoolean, Matches } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+  Matches,
+} from 'class-validator';
 
 export class CreateStatusWorkflowDto {
   @IsString()

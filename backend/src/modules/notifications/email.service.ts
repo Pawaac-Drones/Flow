@@ -40,7 +40,10 @@ export class EmailService implements OnModuleInit {
       return;
     }
 
-    const port = parseInt(this.configService.get<string>('SMTP_PORT', '587'), 10);
+    const port = parseInt(
+      this.configService.get<string>('SMTP_PORT', '587'),
+      10,
+    );
     const user = this.configService.get<string>('SMTP_USER');
     const pass = this.configService.get<string>('SMTP_PASSWORD');
 
@@ -52,9 +55,14 @@ export class EmailService implements OnModuleInit {
         auth: user && pass ? { user, pass } : undefined,
       });
       this.enabled = true;
-      this.logger.log(`Email notifications enabled via SMTP host ${host}:${port}`);
+      this.logger.log(
+        `Email notifications enabled via SMTP host ${host}:${port}`,
+      );
     } catch (error) {
-      this.logger.error('Failed to initialize SMTP transporter', error as Error);
+      this.logger.error(
+        'Failed to initialize SMTP transporter',
+        error as Error,
+      );
       this.transporter = null;
       this.enabled = false;
     }

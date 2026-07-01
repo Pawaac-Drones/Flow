@@ -49,7 +49,9 @@ export class NotificationsService {
     return saved;
   }
 
-  private async sendEmailNotification(params: CreateNotificationParams): Promise<void> {
+  private async sendEmailNotification(
+    params: CreateNotificationParams,
+  ): Promise<void> {
     if (!this.emailService.isEnabled) {
       return;
     }
@@ -75,7 +77,11 @@ export class NotificationsService {
     }
   }
 
-  async findAllForUser(userId: string, paginationDto: PaginationDto, isRead?: boolean) {
+  async findAllForUser(
+    userId: string,
+    paginationDto: PaginationDto,
+    isRead?: boolean,
+  ) {
     const { page = 1, limit = 20 } = paginationDto;
     const skip = (page - 1) * limit;
 
@@ -84,12 +90,13 @@ export class NotificationsService {
       where.isRead = isRead;
     }
 
-    const [notifications, total] = await this.notificationRepository.findAndCount({
-      where,
-      skip,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
+    const [notifications, total] =
+      await this.notificationRepository.findAndCount({
+        where,
+        skip,
+        take: limit,
+        order: { createdAt: 'DESC' },
+      });
 
     return {
       data: notifications,

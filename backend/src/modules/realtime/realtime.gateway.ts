@@ -19,7 +19,9 @@ import { ConfigService } from '@nestjs/config';
   },
   namespace: '/ws',
 })
-export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class RealtimeGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -53,15 +55,17 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   @SubscribeMessage('authenticate')
-  handleAuthenticate(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { userId: string },
-  ) {
+  handleAuthenticate(@ConnectedSocket() client: Socket) {
     // Validate JWT from socket.auth.token instead of trusting client-supplied userId
     const token = client.handshake?.auth?.token;
     if (!token) {
-      this.logger.warn(`Socket ${client.id} attempted to authenticate without a token`);
-      return { event: 'authenticated', data: { success: false, error: 'No token provided' } };
+      this.logger.warn(
+        `Socket ${client.id} attempted to authenticate without a token`,
+      );
+      return {
+        event: 'authenticated',
+        data: { success: false, error: 'No token provided' },
+      };
     }
 
     try {
@@ -70,7 +74,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       const userId = payload.sub;
 
       if (!userId) {
-        return { event: 'authenticated', data: { success: false, error: 'Invalid token payload' } };
+        return {
+          event: 'authenticated',
+          data: { success: false, error: 'Invalid token payload' },
+        };
       }
 
       if (!this.userSocketMap.has(userId)) {
@@ -82,7 +89,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       return { event: 'authenticated', data: { success: true, userId } };
     } catch (error) {
       this.logger.warn(`Socket ${client.id} provided an invalid token`);
-      return { event: 'authenticated', data: { success: false, error: 'Invalid token' } };
+      return {
+        event: 'authenticated',
+        data: { success: false, error: 'Invalid token' },
+      };
     }
   }
 

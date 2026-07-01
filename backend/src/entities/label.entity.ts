@@ -25,7 +25,9 @@ export class Label {
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => Project, (project) => project.labels, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Project, (project) => project.labels, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'project_id' })
   project: Project;
 }

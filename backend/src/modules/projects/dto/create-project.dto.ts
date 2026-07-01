@@ -1,4 +1,10 @@
-import { IsString, MinLength, MaxLength, Matches, IsOptional } from 'class-validator';
+import {
+  IsString,
+  MinLength,
+  MaxLength,
+  Matches,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateProjectDto {
   @IsString()
@@ -10,7 +16,8 @@ export class CreateProjectDto {
   @MinLength(2)
   @MaxLength(10)
   @Matches(/^[A-Z][A-Z0-9]*$/, {
-    message: 'Key must be uppercase letters and numbers, starting with a letter',
+    message:
+      'Key must be uppercase letters and numbers, starting with a letter',
   })
   key: string;
 
