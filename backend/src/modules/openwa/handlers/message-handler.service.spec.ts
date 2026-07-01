@@ -38,10 +38,16 @@ describe('MessageHandlerService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessageHandlerService,
-        { provide: getRepositoryToken(WhatsappUser), useValue: whatsappUserRepository },
+        {
+          provide: getRepositoryToken(WhatsappUser),
+          useValue: whatsappUserRepository,
+        },
         { provide: getRepositoryToken(User), useValue: userRepository },
         { provide: getRepositoryToken(Project), useValue: projectRepository },
-        { provide: getRepositoryToken(ProjectMember), useValue: memberRepository },
+        {
+          provide: getRepositoryToken(ProjectMember),
+          useValue: memberRepository,
+        },
         { provide: OpenWaService, useValue: openWaService },
         { provide: LlmService, useValue: llmService },
         { provide: TasksService, useValue: tasksService },
@@ -90,8 +96,14 @@ describe('MessageHandlerService', () => {
           },
         ],
       });
-      projectRepository.findOne.mockResolvedValue({ id: 'project-1', key: 'PROJ' });
-      memberRepository.findOne.mockResolvedValue({ id: 'm1', userId: 'user-1' });
+      projectRepository.findOne.mockResolvedValue({
+        id: 'project-1',
+        key: 'PROJ',
+      });
+      memberRepository.findOne.mockResolvedValue({
+        id: 'm1',
+        userId: 'user-1',
+      });
       tasksService.create.mockResolvedValue({
         id: 'task-1',
         taskKey: 'PROJ-1',
@@ -102,7 +114,10 @@ describe('MessageHandlerService', () => {
         textResponse: 'Created PROJ-1: Fix login bug',
       });
 
-      await service.handleIncomingMessage(PHONE, 'create a task to fix login bug in PROJ');
+      await service.handleIncomingMessage(
+        PHONE,
+        'create a task to fix login bug in PROJ',
+      );
 
       expect(tasksService.create).toHaveBeenCalledWith(
         'project-1',

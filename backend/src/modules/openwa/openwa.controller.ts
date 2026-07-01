@@ -34,7 +34,10 @@ export class OpenWaController {
     private readonly messageHandler: MessageHandlerService,
     private readonly configService: ConfigService,
   ) {
-    this.webhookSecret = this.configService.get<string>('OPENWA_WEBHOOK_SECRET', '');
+    this.webhookSecret = this.configService.get<string>(
+      'OPENWA_WEBHOOK_SECRET',
+      '',
+    );
   }
 
   @Post('webhook')
@@ -46,7 +49,9 @@ export class OpenWaController {
   ): Promise<{ status: string }> {
     // Verify webhook signature using HMAC
     if (!this.webhookSecret) {
-      this.logger.error('OPENWA_WEBHOOK_SECRET is not configured - rejecting webhook');
+      this.logger.error(
+        'OPENWA_WEBHOOK_SECRET is not configured - rejecting webhook',
+      );
       throw new UnauthorizedException('Webhook secret not configured');
     }
 
@@ -65,7 +70,9 @@ export class OpenWaController {
     const expectedBuffer = Buffer.from(expectedSignature);
 
     if (signatureBuffer.length !== expectedBuffer.length) {
-      this.logger.warn('Webhook signature verification failed: length mismatch');
+      this.logger.warn(
+        'Webhook signature verification failed: length mismatch',
+      );
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
@@ -91,7 +98,9 @@ export class OpenWaController {
     }
 
     // Extract phone number from WhatsApp ID (e.g., '919876543210@c.us' -> '919876543210')
-    const phoneNumber = from.replace('@c.us', '').replace('@s.whatsapp.net', '');
+    const phoneNumber = from
+      .replace('@c.us', '')
+      .replace('@s.whatsapp.net', '');
 
     await this.messageHandler.handleIncomingMessage(phoneNumber, body.trim());
 

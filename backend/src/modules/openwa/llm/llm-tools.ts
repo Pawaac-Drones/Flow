@@ -3,11 +3,14 @@ export interface LlmToolSchema {
   description: string;
   parameters: {
     type: 'object';
-    properties: Record<string, {
-      type: string;
-      description: string;
-      enum?: string[];
-    }>;
+    properties: Record<
+      string,
+      {
+        type: string;
+        description: string;
+        enum?: string[];
+      }
+    >;
     required: string[];
   };
 }
@@ -15,7 +18,8 @@ export interface LlmToolSchema {
 export const llmTools: LlmToolSchema[] = [
   {
     name: 'create_task',
-    description: 'Create a new task in a project. The user must specify a title and optionally a project, priority, assignee, and due date.',
+    description:
+      'Create a new task in a project. The user must specify a title and optionally a project, priority, assignee, and due date.',
     parameters: {
       type: 'object',
       properties: {
@@ -25,7 +29,8 @@ export const llmTools: LlmToolSchema[] = [
         },
         projectKey: {
           type: 'string',
-          description: 'The project key (e.g., "PROJ") to create the task in. If not specified, uses the user default project.',
+          description:
+            'The project key (e.g., "PROJ") to create the task in. If not specified, uses the user default project.',
         },
         priority: {
           type: 'string',
@@ -50,7 +55,8 @@ export const llmTools: LlmToolSchema[] = [
   },
   {
     name: 'update_task_status',
-    description: 'Update the status of an existing task. The user references the task by its key (e.g., PROJ-123).',
+    description:
+      'Update the status of an existing task. The user references the task by its key (e.g., PROJ-123).',
     parameters: {
       type: 'object',
       properties: {
@@ -87,7 +93,8 @@ export const llmTools: LlmToolSchema[] = [
   },
   {
     name: 'query_tasks',
-    description: 'Search and filter tasks based on criteria like status, priority, assignee, or text search.',
+    description:
+      'Search and filter tasks based on criteria like status, priority, assignee, or text search.',
     parameters: {
       type: 'object',
       properties: {
@@ -123,7 +130,8 @@ export const llmTools: LlmToolSchema[] = [
   },
   {
     name: 'get_my_pending_tasks',
-    description: 'Get all pending (non-done) tasks assigned to the current user. Use when the user asks about their open tasks, pending work, or what they need to do.',
+    description:
+      'Get all pending (non-done) tasks assigned to the current user. Use when the user asks about their open tasks, pending work, or what they need to do.',
     parameters: {
       type: 'object',
       properties: {

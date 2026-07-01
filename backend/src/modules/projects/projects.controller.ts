@@ -11,7 +11,10 @@ import {
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser, CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  CurrentUserPayload,
+} from '../auth/decorators/current-user.decorator';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { AddMemberDto } from './dto/add-member.dto';
@@ -40,7 +43,10 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+  async findById(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.projectsService.findById(id, user.id);
   }
 
@@ -54,7 +60,10 @@ export class ProjectsController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.projectsService.remove(id, user.id);
   }
 

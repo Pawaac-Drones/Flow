@@ -36,7 +36,12 @@ export class User {
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive: boolean;
 
-  @Column({ type: 'varchar', length: 255, nullable: true, name: 'refresh_token_hash' })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'refresh_token_hash',
+  })
   refreshTokenHash: string | null;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })

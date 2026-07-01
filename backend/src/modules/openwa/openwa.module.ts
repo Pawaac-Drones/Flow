@@ -25,11 +25,27 @@ export class OpenWaModule {
       imports: [
         ConfigModule,
         ScheduleModule.forRoot(),
-        TypeOrmModule.forFeature([WhatsappUser, User, Project, ProjectMember, Task]),
+        TypeOrmModule.forFeature([
+          WhatsappUser,
+          User,
+          Project,
+          ProjectMember,
+          Task,
+        ]),
         TasksModule,
       ],
-      controllers: [OpenWaController, DigestController, WhatsappUsersController],
-      providers: [OpenWaService, LlmService, MessageHandlerService, DigestService, WhatsappUsersService],
+      controllers: [
+        OpenWaController,
+        DigestController,
+        WhatsappUsersController,
+      ],
+      providers: [
+        OpenWaService,
+        LlmService,
+        MessageHandlerService,
+        DigestService,
+        WhatsappUsersService,
+      ],
       exports: [OpenWaService],
     };
   }

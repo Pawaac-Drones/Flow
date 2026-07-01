@@ -55,11 +55,41 @@ export class ProjectsService {
 
     // Create default status workflows
     const defaultStatuses = [
-      { name: 'Backlog', slug: 'backlog', order: 0, color: '#6b7280', isDefault: true },
-      { name: 'To Do', slug: 'todo', order: 1, color: '#3b82f6', isDefault: false },
-      { name: 'In Progress', slug: 'in_progress', order: 2, color: '#f59e0b', isDefault: false },
-      { name: 'In Review', slug: 'in_review', order: 3, color: '#8b5cf6', isDefault: false },
-      { name: 'Done', slug: 'done', order: 4, color: '#10b981', isDefault: false },
+      {
+        name: 'Backlog',
+        slug: 'backlog',
+        order: 0,
+        color: '#6b7280',
+        isDefault: true,
+      },
+      {
+        name: 'To Do',
+        slug: 'todo',
+        order: 1,
+        color: '#3b82f6',
+        isDefault: false,
+      },
+      {
+        name: 'In Progress',
+        slug: 'in_progress',
+        order: 2,
+        color: '#f59e0b',
+        isDefault: false,
+      },
+      {
+        name: 'In Review',
+        slug: 'in_review',
+        order: 3,
+        color: '#8b5cf6',
+        isDefault: false,
+      },
+      {
+        name: 'Done',
+        slug: 'done',
+        order: 4,
+        color: '#10b981',
+        isDefault: false,
+      },
     ];
 
     for (const status of defaultStatuses) {
@@ -79,7 +109,9 @@ export class ProjectsService {
 
     const query = this.projectRepository
       .createQueryBuilder('project')
-      .innerJoin('project.members', 'member', 'member.userId = :userId', { userId })
+      .innerJoin('project.members', 'member', 'member.userId = :userId', {
+        userId,
+      })
       .leftJoinAndSelect('project.owner', 'owner')
       .select([
         'project.id',
@@ -231,7 +263,9 @@ export class ProjectsService {
 
   async incrementTaskCounter(projectId: string): Promise<number> {
     await this.projectRepository.increment({ id: projectId }, 'taskCounter', 1);
-    const project = await this.projectRepository.findOne({ where: { id: projectId } });
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId },
+    });
     return project!.taskCounter;
   }
 
@@ -241,7 +275,9 @@ export class ProjectsService {
     });
 
     if (!member || member.role !== 'admin') {
-      throw new ForbiddenException('Only project admins can perform this action');
+      throw new ForbiddenException(
+        'Only project admins can perform this action',
+      );
     }
   }
 }

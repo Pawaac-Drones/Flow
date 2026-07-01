@@ -34,7 +34,11 @@ export class EpicsService {
     return this.epicRepository.save(epic);
   }
 
-  async findAll(projectId: string, userId: string, paginationDto: PaginationDto) {
+  async findAll(
+    projectId: string,
+    userId: string,
+    paginationDto: PaginationDto,
+  ) {
     await this.assertProjectMember(projectId, userId);
 
     const { page = 1, limit = 20 } = paginationDto;
@@ -73,13 +77,20 @@ export class EpicsService {
     return epic;
   }
 
-  async update(projectId: string, epicId: string, dto: UpdateEpicDto, userId: string) {
+  async update(
+    projectId: string,
+    epicId: string,
+    dto: UpdateEpicDto,
+    userId: string,
+  ) {
     const epic = await this.findById(projectId, epicId, userId);
 
     if (dto.name !== undefined) epic.name = dto.name;
     if (dto.description !== undefined) epic.description = dto.description;
-    if (dto.startDate !== undefined) epic.startDate = dto.startDate ? new Date(dto.startDate) : null;
-    if (dto.endDate !== undefined) epic.endDate = dto.endDate ? new Date(dto.endDate) : null;
+    if (dto.startDate !== undefined)
+      epic.startDate = dto.startDate ? new Date(dto.startDate) : null;
+    if (dto.endDate !== undefined)
+      epic.endDate = dto.endDate ? new Date(dto.endDate) : null;
 
     return this.epicRepository.save(epic);
   }

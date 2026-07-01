@@ -10,9 +10,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 @SkipThrottle()
 @Controller('health')
 export class HealthController {
-  constructor(
-    @InjectDataSource() private readonly dataSource: DataSource,
-  ) {}
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   @Get()
   async check() {

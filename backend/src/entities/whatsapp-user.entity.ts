@@ -43,7 +43,9 @@ export class WhatsappUser {
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => User, (user) => user.whatsappAccounts, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.whatsappAccounts, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'user_id' })
   user: User;
 }

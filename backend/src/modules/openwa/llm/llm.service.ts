@@ -47,7 +47,10 @@ export class LlmService {
   private readonly model: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.apiUrl = this.configService.get<string>('LLM_API_URL', 'https://api.openai.com/v1');
+    this.apiUrl = this.configService.get<string>(
+      'LLM_API_URL',
+      'https://api.openai.com/v1',
+    );
     this.apiKey = this.configService.get<string>('LLM_API_KEY', '');
     this.model = this.configService.get<string>('LLM_MODEL', 'gpt-4o-mini');
   }
@@ -55,7 +58,7 @@ export class LlmService {
   async processMessage(
     userMessage: string,
     userName: string,
-    context?: string
+    context?: string,
   ): Promise<LlmResult> {
     const systemPrompt = this.buildSystemPrompt(userName, context);
     const messages: ChatMessage[] = [
@@ -70,7 +73,8 @@ export class LlmService {
       this.logger.error('LLM API call failed:', error);
       return {
         toolCalls: [],
-        textResponse: 'Sorry, I encountered an error processing your request. Please try again.',
+        textResponse:
+          'Sorry, I encountered an error processing your request. Please try again.',
       };
     }
   }
@@ -80,7 +84,7 @@ export class LlmService {
     userName: string,
     toolResults: Array<{ id: string; result: string }>,
     assistantMessage?: { tool_calls: ToolCall[] },
-    context?: string
+    context?: string,
   ): Promise<LlmResult> {
     const systemPrompt = this.buildSystemPrompt(userName, context);
     const messages: ChatMessage[] = [
@@ -113,7 +117,8 @@ export class LlmService {
       this.logger.error('LLM API call with tool results failed:', error);
       return {
         toolCalls: [],
-        textResponse: 'Sorry, I encountered an error processing the results. Please try again.',
+        textResponse:
+          'Sorry, I encountered an error processing the results. Please try again.',
       };
     }
   }
@@ -190,7 +195,9 @@ Always confirm actions with a brief response. Use task keys (like PROJ-123) when
             arguments: args,
           });
         } catch (error) {
-          this.logger.warn(`Failed to parse tool call arguments: ${tc.function.arguments}`);
+          this.logger.warn(
+            `Failed to parse tool call arguments: ${tc.function.arguments}`,
+          );
         }
       }
     }
@@ -198,7 +205,10 @@ Always confirm actions with a brief response. Use task keys (like PROJ-123) when
     return {
       toolCalls,
       textResponse: message.content || null,
-      rawToolCalls: message.tool_calls && message.tool_calls.length > 0 ? message.tool_calls : undefined,
+      rawToolCalls:
+        message.tool_calls && message.tool_calls.length > 0
+          ? message.tool_calls
+          : undefined,
     };
   }
 }

@@ -45,8 +45,14 @@ describe('TasksService', () => {
         TasksService,
         { provide: getRepositoryToken(Task), useValue: taskRepository },
         { provide: getRepositoryToken(Project), useValue: projectRepository },
-        { provide: getRepositoryToken(ProjectMember), useValue: memberRepository },
-        { provide: getRepositoryToken(StatusWorkflow), useValue: workflowRepository },
+        {
+          provide: getRepositoryToken(ProjectMember),
+          useValue: memberRepository,
+        },
+        {
+          provide: getRepositoryToken(StatusWorkflow),
+          useValue: workflowRepository,
+        },
         { provide: ActivityService, useValue: activityService },
         { provide: NotificationsService, useValue: notificationsService },
         { provide: RealtimeGateway, useValue: realtimeGateway },
@@ -62,7 +68,9 @@ describe('TasksService', () => {
       set: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       returning: jest.fn().mockReturnThis(),
-      execute: jest.fn().mockResolvedValue({ raw: [{ task_counter: counter }] }),
+      execute: jest
+        .fn()
+        .mockResolvedValue({ raw: [{ task_counter: counter }] }),
     };
     projectRepository.createQueryBuilder.mockReturnValue(qb);
   };
@@ -71,10 +79,16 @@ describe('TasksService', () => {
     it('generates a task key and accepts a status that exists in the workflow', async () => {
       memberRepository.findOne.mockResolvedValue({ role: 'member' });
       workflowRepository.findOne.mockResolvedValue({ slug: 'todo' });
-      projectRepository.findOne.mockResolvedValue({ id: PROJECT_ID, key: 'PROJ' });
+      projectRepository.findOne.mockResolvedValue({
+        id: PROJECT_ID,
+        key: 'PROJ',
+      });
       mockCounterQueryBuilder(1);
       taskRepository.create.mockImplementation((data) => data);
-      taskRepository.save.mockImplementation(async (data) => ({ id: 'task-1', ...data }));
+      taskRepository.save.mockImplementation(async (data) => ({
+        id: 'task-1',
+        ...data,
+      }));
 
       const result = await service.create(
         PROJECT_ID,
@@ -100,12 +114,22 @@ describe('TasksService', () => {
         { slug: 'backlog', isDefault: true, order: 0 },
         { slug: 'todo', isDefault: false, order: 1 },
       ]);
-      projectRepository.findOne.mockResolvedValue({ id: PROJECT_ID, key: 'PROJ' });
+      projectRepository.findOne.mockResolvedValue({
+        id: PROJECT_ID,
+        key: 'PROJ',
+      });
       mockCounterQueryBuilder(2);
       taskRepository.create.mockImplementation((data) => data);
-      taskRepository.save.mockImplementation(async (data) => ({ id: 'task-2', ...data }));
+      taskRepository.save.mockImplementation(async (data) => ({
+        id: 'task-2',
+        ...data,
+      }));
 
-      const result = await service.create(PROJECT_ID, { title: 'No status' }, USER_ID);
+      const result = await service.create(
+        PROJECT_ID,
+        { title: 'No status' },
+        USER_ID,
+      );
 
       expect(result.status).toBe('backlog');
       expect(result.taskKey).toBe('PROJ-2');
@@ -116,7 +140,11 @@ describe('TasksService', () => {
       workflowRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.create(PROJECT_ID, { title: 'Bad', status: 'nonexistent' }, USER_ID),
+        service.create(
+          PROJECT_ID,
+          { title: 'Bad', status: 'nonexistent' },
+          USER_ID,
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(taskRepository.save).not.toHaveBeenCalled();
     });
@@ -125,7 +153,11 @@ describe('TasksService', () => {
       memberRepository.findOne.mockResolvedValue({ role: 'viewer' });
 
       await expect(
-        service.create(PROJECT_ID, { title: 'Blocked', status: 'todo' }, USER_ID),
+        service.create(
+          PROJECT_ID,
+          { title: 'Blocked', status: 'todo' },
+          USER_ID,
+        ),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(taskRepository.save).not.toHaveBeenCalled();
     });
@@ -134,7 +166,11 @@ describe('TasksService', () => {
       memberRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.create(PROJECT_ID, { title: 'Blocked', status: 'todo' }, USER_ID),
+        service.create(
+          PROJECT_ID,
+          { title: 'Blocked', status: 'todo' },
+          USER_ID,
+        ),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });

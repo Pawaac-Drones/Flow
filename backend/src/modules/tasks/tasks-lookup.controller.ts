@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser, CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  CurrentUserPayload,
+} from '../auth/decorators/current-user.decorator';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 /**
@@ -37,7 +40,12 @@ export class TasksLookupController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     const task = await this.tasksService.findByIdDirect(taskId, user.id);
-    return this.tasksService.update(task.projectId, taskId, updateTaskDto, user.id);
+    return this.tasksService.update(
+      task.projectId,
+      taskId,
+      updateTaskDto,
+      user.id,
+    );
   }
 
   @Delete(':taskId')

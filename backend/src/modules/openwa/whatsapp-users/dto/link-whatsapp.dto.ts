@@ -10,7 +10,8 @@ export class LinkWhatsappDto {
   @MinLength(8)
   @MaxLength(25)
   @Matches(/^[+]?[0-9\s-]+$/, {
-    message: 'phoneNumber must contain only digits, spaces, dashes and an optional leading +',
+    message:
+      'phoneNumber must contain only digits, spaces, dashes and an optional leading +',
   })
   phoneNumber: string;
 }

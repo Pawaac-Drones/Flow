@@ -44,7 +44,9 @@ export class TasksService {
       : await this.getDefaultStatus(projectId);
 
     // Generate task key using atomic increment with RETURNING to prevent race conditions
-    const project = await this.projectRepository.findOne({ where: { id: projectId } });
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId },
+    });
     if (!project) {
       throw new NotFoundException('Project not found');
     }
@@ -108,7 +110,16 @@ export class TasksService {
   async findAll(projectId: string, userId: string, filterDto: TaskFilterDto) {
     await this.assertProjectMember(projectId, userId);
 
-    const { page = 1, limit = 50, status, priority, assigneeId, epicId, search, labels } = filterDto;
+    const {
+      page = 1,
+      limit = 50,
+      status,
+      priority,
+      assigneeId,
+      epicId,
+      search,
+      labels,
+    } = filterDto;
     const skip = (page - 1) * limit;
 
     let query: SelectQueryBuilder<Task> = this.taskRepository
@@ -195,7 +206,14 @@ export class TasksService {
   async findByIdDirect(taskId: string, userId: string) {
     const task = await this.taskRepository.findOne({
       where: { id: taskId },
-      relations: ['assignee', 'reporter', 'epic', 'subtasks', 'comments', 'project'],
+      relations: [
+        'assignee',
+        'reporter',
+        'epic',
+        'subtasks',
+        'comments',
+        'project',
+      ],
     });
 
     if (!task) {
@@ -207,7 +225,12 @@ export class TasksService {
     return task;
   }
 
-  async update(projectId: string, taskId: string, dto: UpdateTaskDto, userId: string) {
+  async update(
+    projectId: string,
+    taskId: string,
+    dto: UpdateTaskDto,
+    userId: string,
+  ) {
     await this.assertProjectWriteAccess(projectId, userId);
     const task = await this.findById(projectId, taskId, userId);
     const oldStatus = task.status;
@@ -223,7 +246,8 @@ export class TasksService {
     if (dto.assigneeId !== undefined) task.assigneeId = dto.assigneeId;
     if (dto.epicId !== undefined) task.epicId = dto.epicId;
     if (dto.parentTaskId !== undefined) task.parentTaskId = dto.parentTaskId;
-    if (dto.dueDate !== undefined) task.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+    if (dto.dueDate !== undefined)
+      task.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
     if (dto.labels !== undefined) task.labels = dto.labels;
     if (dto.order !== undefined) task.order = dto.order;
 

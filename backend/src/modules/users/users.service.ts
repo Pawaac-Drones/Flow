@@ -22,7 +22,15 @@ export class UsersService {
     const skip = (page - 1) * limit;
 
     const [users, total] = await this.userRepository.findAndCount({
-      select: ['id', 'email', 'displayName', 'avatarUrl', 'role', 'isActive', 'createdAt'],
+      select: [
+        'id',
+        'email',
+        'displayName',
+        'avatarUrl',
+        'role',
+        'isActive',
+        'createdAt',
+      ],
       where: { isActive: true },
       skip,
       take: limit,
@@ -43,7 +51,16 @@ export class UsersService {
   async findById(id: string) {
     const user = await this.userRepository.findOne({
       where: { id },
-      select: ['id', 'email', 'displayName', 'avatarUrl', 'role', 'isActive', 'createdAt', 'updatedAt'],
+      select: [
+        'id',
+        'email',
+        'displayName',
+        'avatarUrl',
+        'role',
+        'isActive',
+        'createdAt',
+        'updatedAt',
+      ],
     });
 
     if (!user) {

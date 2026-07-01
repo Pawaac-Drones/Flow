@@ -8,7 +8,10 @@ import {
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser, CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  CurrentUserPayload,
+} from '../auth/decorators/current-user.decorator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 
 @Controller('notifications')
@@ -23,7 +26,11 @@ export class NotificationsController {
     @Query('isRead') isRead?: string,
   ) {
     const readFilter = isRead !== undefined ? isRead === 'true' : undefined;
-    return this.notificationsService.findAllForUser(user.id, paginationDto, readFilter);
+    return this.notificationsService.findAllForUser(
+      user.id,
+      paginationDto,
+      readFilter,
+    );
   }
 
   @Get('unread-count')

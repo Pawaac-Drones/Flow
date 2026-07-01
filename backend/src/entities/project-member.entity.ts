@@ -28,11 +28,15 @@ export class ProjectMember {
   @CreateDateColumn({ type: 'timestamptz', name: 'joined_at' })
   joinedAt: Date;
 
-  @ManyToOne(() => Project, (project) => project.members, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Project, (project) => project.members, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'project_id' })
   project: Project;
 
-  @ManyToOne(() => User, (user) => user.projectMemberships, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.projectMemberships, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'user_id' })
   user: User;
 }
