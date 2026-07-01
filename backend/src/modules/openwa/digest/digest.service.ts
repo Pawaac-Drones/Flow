@@ -6,7 +6,7 @@ import { WhatsappUser } from '../../../entities/whatsapp-user.entity';
 import { Task } from '../../../entities/task.entity';
 import { User } from '../../../entities/user.entity';
 import { OpenWaService } from '../openwa.service';
-import { TaskStatus, Priority } from '../../../../../shared/src/types/enums';
+import { TaskStatus, Priority } from '../../../common/enums';
 
 @Injectable()
 export class DigestService {

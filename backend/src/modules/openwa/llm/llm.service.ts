@@ -173,7 +173,7 @@ Always confirm actions with a brief response. Use task keys (like PROJ-123) when
       throw new Error(`LLM API error: ${response.status} ${errorText}`);
     }
 
-    return response.json();
+    return (await response.json()) as LlmResponse;
   }
 
   private parseResponse(response: LlmResponse): LlmResult {

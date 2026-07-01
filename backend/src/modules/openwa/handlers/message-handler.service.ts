@@ -8,7 +8,7 @@ import { ProjectMember } from '../../../entities/project-member.entity';
 import { OpenWaService } from '../openwa.service';
 import { LlmService } from '../llm/llm.service';
 import { TasksService } from '../../tasks/tasks.service';
-import { TaskStatus } from '../../../../../shared/src/types/enums';
+import { TaskStatus } from '../../../common/enums';
 
 @Injectable()
 export class MessageHandlerService {
