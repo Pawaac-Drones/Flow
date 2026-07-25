@@ -42,3 +42,7 @@ ormlogs.log
 
 # Misc
 *.tsbuildinfo
+
+# Local npm shell override (machine-specific path; only needed if your
+# checkout path contains characters like '&' that break cmd.exe on Windows)
+.npmrc
