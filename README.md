@@ -115,6 +115,53 @@ pawaacflow/
    > (the `role` field is ignored). To grant admin rights, update the user's
    > role afterwards via `PATCH /api/users/:id/role` from an existing admin,
    > or set it directly in the database for the very first user.
+### Database Configuration
+
+PawaacFlow uses plain Postgres via TypeORM, so any Postgres-compatible
+provider works, including managed services like **Supabase**, RDS, or Azure
+Database for PostgreSQL — not just the bundled `docker-compose` container.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_HOST` | Postgres host | `postgres` (docker-compose service name) |
+| `DB_PORT` | Postgres port | `5432` |
+| `DB_USERNAME` | Postgres username | `pawaacflow` |
+| `DB_PASSWORD` | Postgres password | `pawaacflow_secret` |
+| `DB_DATABASE` | Database name | `pawaacflow` |
+| `DB_SSL` | Set to `true` to enable TLS (required by most managed providers, including Supabase) | `false` |
+| `DB_SSL_REJECT_UNAUTHORIZED` | Set to `false` only if the provider's cert isn't in Node's default CA store. Ignored unless `DB_SSL=true`. | `true` |
+| `DB_POOL_SIZE` | Max connections in the TypeORM/pg connection pool | `10` |
+
+All backend env vars are validated at startup (see `backend/src/config/env.validation.ts`);
+missing or malformed values fail fast with a descriptive error instead of a
+confusing runtime connection failure.
+
+#### Using Supabase
+
+1. Create a Supabase project and grab the connection details from
+   **Settings → Database → Connection string**.
+2. Set in `.env`:
+   ```env
+   DB_HOST=db.<your-project-ref>.supabase.co
+   DB_PORT=5432
+   DB_USERNAME=postgres
+   DB_PASSWORD=<your-supabase-db-password>
+   DB_DATABASE=postgres
+   DB_SSL=true
+   ```
+3. Run the SQL files in `database/migrations/` (`001` through `009`, in
+   order) against the Supabase database via the SQL Editor or `psql` — the
+   `docker-entrypoint-initdb.d` auto-run only applies to the bundled
+   `postgres` container on first init, not to an external database.
+4. `uuid-ossp` (used for UUID primary keys) is enabled by default on Supabase;
+   if a migration errors on `CREATE EXTENSION`, enable it under
+   **Database → Extensions**.
+5. If running the full stack via `docker-compose up`, the bundled `postgres`
+   container will still start but sit unused; that's harmless, just an extra
+   idle container. To skip it, run the backend/frontend outside compose or
+   remove the `postgres` service from `docker-compose.yml`.
+
+
 
 ### OpenWA Setup
 

@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { databaseConfig } from './config/database.config';
 import { appConfig } from './config/app.config';
 import { jwtConfig } from './config/jwt.config';
+import { envValidationSchema } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ProjectsModule } from './modules/projects/projects.module';
@@ -25,6 +26,10 @@ const isOpenWaEnabled = process.env.OPENWA_ENABLED === 'true';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig, databaseConfig, jwtConfig],
+      validationSchema: envValidationSchema,
+      validationOptions: {
+        abortEarly: false,
+      },
     }),
     // Global rate limiting: 100 requests per minute per client by default.
     ThrottlerModule.forRoot([
@@ -34,17 +39,9 @@ const isOpenWaEnabled = process.env.OPENWA_ENABLED === 'true';
       },
     ]),
     TypeOrmModule.forRootAsync({
-      useFactory: () => ({
-        type: 'postgres' as const,
-        host: process.env.DB_HOST || 'localhost',
-        port: parseInt(process.env.DB_PORT || '5432', 10),
-        username: process.env.DB_USERNAME || 'pawaacflow',
-        password: process.env.DB_PASSWORD || 'pawaacflow_secret',
-        database: process.env.DB_DATABASE || 'pawaacflow',
-        entities: [__dirname + '/entities/**/*.entity{.ts,.js}'],
-        synchronize: process.env.NODE_ENV !== 'production',
-        logging: process.env.NODE_ENV === 'development',
-      }),
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) =>
+        configService.getOrThrow<TypeOrmModuleOptions>('database'),
     }),
     AuthModule,
     UsersModule,

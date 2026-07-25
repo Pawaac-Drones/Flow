@@ -29,11 +29,14 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: ${PORT:-4000}
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
       DB_USERNAME: ${DB_USERNAME:-pawaacflow}
       DB_PASSWORD: ${DB_PASSWORD:-pawaacflow_secret}
       DB_DATABASE: ${DB_DATABASE:-pawaacflow}
+      DB_SSL: ${DB_SSL:-false}
+      DB_SSL_REJECT_UNAUTHORIZED: ${DB_SSL_REJECT_UNAUTHORIZED:-true}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-refresh-secret-key-change-in-production}
